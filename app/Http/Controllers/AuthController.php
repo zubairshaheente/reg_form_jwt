@@ -5,7 +5,6 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 use App\Mail\SampleEmail;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
@@ -29,6 +28,7 @@ class AuthController extends Controller
         Mail::to($request->email)->send(new SampleEmail($user, $token));
 
         return response()->json([
+            'message' => 'User registered successfully. Verification email has been sent.',
             'token' => $token,
             'user' => $user
         ]);
@@ -50,7 +50,7 @@ class AuthController extends Controller
         if ($user) {
             $user->update([
                 'email_verified_at' => now(),
-                'verification_token' => null,
+                // 'verification_token' => null,
             ]);
             return redirect()->route('login')->with('success', 'Your account has been verified successfully. Please log in.');
         } else {
@@ -62,4 +62,35 @@ class AuthController extends Controller
         return view('login');
     }
 
+    // Edit the user record
+    public function update(Request $request, $verification_token){
+        // $user = User::find($verification_token);
+        $user = User::where('verification_token', $verification_token)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+        $user->update($request->all());
+        return response()->json(['message' => 'User updated successfully', 'user' => $user]);
+    }
+
+    // Retrive the user record
+    public function retrieve($id){
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        } else {
+            return response()->json(['message' => 'User Retrieve the record Successfully', 'user' => $user]);
+        }
+    }
+    // Delete the user record
+    public function delete($verification_token){
+        // dd('delete');
+        // $user = User::find($id);
+        $user = User::where('verification_token', $verification_token)->first();
+        if(!$user){
+            return response()->json(['message' => 'User Record not Found'], 404);
+        }
+        $user->delete();
+            return response()->json(['message' => 'User Deleted Successfully']);
+    }
 }
