@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use App\Mail\SampleEmail;
 use App\Models\User;
 use Tymon\JWTAuth\Facades\JWTAuth;
+use Twilio\Rest\Client;
 
 class AuthController extends Controller
 {
@@ -17,14 +18,26 @@ class AuthController extends Controller
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
+            'phn_num' => $request->phn_num,
             'password' => bcrypt($request->password),
             'verification_token' => null
         ]);
 
-        $token = auth()->login($user);
+        $token = auth()->login($user); // Generate JWT token
 
-        $user->verification_token = $token;
+        $user->verification_token = $token; // Set verification token
         $user->save();
+
+        $twilio = new Client(env('TWILIO_SID'), env('TWILIO_AUTH_TOKEN'));
+
+        $twilio->messages->create(
+            $request->input('phn_num'),
+            [
+                'from' => env('TWILIO_PHONE_NUMBER'),
+                'body' => 'Your verification code is: ' . $token // Use $token directly
+            ]
+        );
+
 
         Mail::to($request->email)->send(new SampleEmail($user, $token));
 
@@ -63,5 +76,7 @@ class AuthController extends Controller
         dd('hello');
     }
 
-
+    public function twilio(){
+        dd('Twilio');
+    }
 }
